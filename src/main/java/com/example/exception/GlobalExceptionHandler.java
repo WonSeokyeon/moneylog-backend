@@ -12,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
@@ -47,6 +48,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleDateFormatException(Exception e) {
         return ResponseEntity.status(ErrorCode.INVALID_INPUT.getStatus())
                 .body(ApiResponse.error(ErrorCode.INVALID_INPUT.name(), "날짜 형식이 올바르지 않습니다."));
+    }
+
+    // 업로드 용량 초과(1MB) 시 스프링 표준 413/500 대신 우리 봉투 포맷의 400 INVALID_CSV로 응답한다(CLAUDE.md 5장).
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
+        return ResponseEntity.status(ErrorCode.INVALID_CSV.getStatus())
+                .body(ApiResponse.error(ErrorCode.INVALID_CSV.name(), "파일 용량이 상한(1MB)을 초과했습니다."));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
