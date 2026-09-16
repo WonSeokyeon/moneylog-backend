@@ -1,6 +1,7 @@
 package com.example.domain;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -13,6 +14,17 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     // 조회/수정/삭제 전 소유권 검증용. 이미 삭제된 거래는 다시 꺼내 쓸 수 없어야 하므로 deletedAt IS NULL을 건다.
     Optional<Transaction> findByIdAndUserAndDeletedAtIsNull(Long id, User user);
+
+    // 월 집계(summary/byCategory/daily) 전용. GROUP BY로 DB에서 합산하지 않고 한 번에 불러와 자바에서 집계한다 —
+    // 한 달치 거래는 최대 수백~천 건 수준이라 성능 문제가 없고, CASE 안에서 enum 리터럴을 비교하는 JPQL이
+    // 이 프로젝트의 Hibernate 7.4.5 + PostgreSQL 조합에서 반복적으로 파라미터 타입 추론 문제를 일으켰던 것도 피한다.
+    // join fetch로 category를 함께 가져와 삭제된 카테고리를 쓰던 거래도 그대로 집계에 포함시킨다(CLAUDE.md 4장).
+    @Query("SELECT t FROM Transaction t JOIN FETCH t.category "
+            + "WHERE t.user = :user AND t.deletedAt IS NULL AND t.txnDate BETWEEN :from AND :to "
+            + "ORDER BY t.txnDate ASC")
+    List<Transaction> findForMonth(@Param("user") User user,
+                                    @Param("from") LocalDate from,
+                                    @Param("to") LocalDate to);
 
     // 카테고리 조인에는 deleted_at IS NULL을 걸지 않는다 — 삭제된 카테고리를 쓰던 과거 거래도 그대로 보여야 한다(CLAUDE.md 4장).
     // join fetch는 *ToOne(category) 관계라 페이지네이션과 함께 써도 안전하다(*ToMany 컬렉션 fetch join과 다름).
