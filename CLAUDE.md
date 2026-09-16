@@ -60,6 +60,36 @@ Hibernate `ddl-auto`가 만들지 못하는 부분 유니크 인덱스(`categori
 - `psql` 경로는 로컬 PostgreSQL 설치 버전에 맞게 바꾼다.
 - 멱등적으로 작성돼 있다(`IF NOT EXISTS`, 이미 있는 제약을 다시 추가하면 에러가 나므로 재적용 전 `\d categories`/`\d transactions`로 존재 여부를 먼저 확인한다).
 
+## db/seed-dev.sql 적용 방법
+
+테스트 계정 1개(`seed@moneylog.local` / `moneylog1234`) + 기본 카테고리 9개 + 최근 6개월 거래 약 400건을 심는다. **재실행 가능**하도록 스크립트 맨 앞에서 같은 이메일의 기존 데이터를 먼저 지운다. 날짜는 `CURRENT_DATE` 기준 상대 계산이라 언제 적용해도 "최근 6개월"이 유지된다.
+
+```bash
+"/c/Program Files/PostgreSQL/17/bin/psql.exe" -U postgres -h localhost -d moneylog_db \
+  -f src/main/resources/db/seed-dev.sql
+```
+
+- 넷플릭스(17,000원, 매월 5일)·통신비(45,000원, 매월 12일)가 6개월 연속 들어 있다(Phase5 고정지출 감지 검증용).
+- 급여(3,000,000원, 매월 25일)도 6개월 연속 들어 있다.
+- 나머지 382건은 EXPENSE 카테고리 7종을 순환하며 채운 것이라 상호와 카테고리가 의미상 딱 들어맞지는 않는다(예: "CGV"가 "식비"로 분류됨) — 필터·페이지네이션·검색·집계 로직 검증용 데이터이지 실사용 데이터가 아니다.
+
+## db/seed-perf.sql 적용 방법
+
+`seed-dev.sql`과 **같은 계정**(`seed@moneylog.local`)에 24개월치 20,000건을 추가한다. **성능 측정 전용**이며 평소 개발·기능 테스트에는 필요 없다.
+
+```bash
+"/c/Program Files/PostgreSQL/17/bin/psql.exe" -U postgres -h localhost -d moneylog_db \
+  -f src/main/resources/db/seed-perf.sql
+```
+
+- **`seed-dev.sql`이 먼저 적용돼 있어야 한다.** 계정이 없으면 `RAISE EXCEPTION`으로 즉시 실패한다(빈 결과로 조용히 통과하지 않는다).
+- 이 스크립트가 만든 행은 `memo = 'PERF-SEED'`로 태그돼 있어 재실행해도 중복 적재되지 않는다(재실행 시 자기 행만 지우고 다시 채움). `seed-dev.sql`의 400건은 이 태그가 없어 영향받지 않는다.
+- 측정이 끝나면 아래로 20,000건만 제거하고 `seed-dev.sql` 상태(400건)로 되돌린다:
+  ```sql
+  DELETE FROM transactions
+  WHERE user_id = (SELECT id FROM users WHERE email = 'seed@moneylog.local') AND memo = 'PERF-SEED';
+  ```
+
 ## 테스트
 
 - 통합 테스트 DB는 **로컬 PostgreSQL `moneylog_test`**를 쓴다. H2·Testcontainers는 쓰지 않는다(`CLAUDE.md` 12장 — 집계 쿼리가 PostgreSQL 전용 동작에 의존한다).
