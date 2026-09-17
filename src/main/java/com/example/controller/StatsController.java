@@ -10,13 +10,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.domain.Budget;
 import com.example.domain.Transaction;
 import com.example.domain.User;
 import com.example.dto.ApiResponse;
 import com.example.dto.MonthlyStatsResponse;
 import com.example.dto.RecurringResponse;
-import com.example.service.ForecastCalculator;
 import com.example.service.RecurringDetector;
 import com.example.service.StatsService;
 
@@ -31,40 +29,13 @@ public class StatsController {
     }
 
     // yearMonth/asOf는 요청 파라미터로만 받는다. "이번 달"·"오늘"을 서버가 판정하지 않는다(CLAUDE.md 4장).
+    // 조회·집계·예측 조합은 StatsService에 있다 — 컨트롤러는 호출과 DTO 변환만 한다.
     @GetMapping("/monthly")
     public ApiResponse<MonthlyStatsResponse> monthly(@AuthenticationPrincipal User user,
                                                        @RequestParam String yearMonth,
                                                        @RequestParam LocalDate asOf) {
-        YearMonth targetMonth = YearMonth.parse(yearMonth);
-
-        List<Transaction> monthTransactions = statsService.findMonthTransactions(user, targetMonth);
-        StatsService.Summary summary = statsService.summarize(monthTransactions);
-        List<StatsService.CategoryAmount> byCategory =
-                statsService.byCategory(monthTransactions, summary.expense());
-        List<StatsService.DailyAmount> daily = statsService.daily(monthTransactions, targetMonth);
-
-        List<Transaction> baselineTransactions = statsService.findBaselineTransactions(user, targetMonth);
-        StatsService.Forecast forecast =
-                statsService.computeForecast(targetMonth, asOf, summary.expense(), baselineTransactions);
-
-        int daysInMonth = targetMonth.lengthOfMonth();
-        int daysElapsed = ForecastCalculator.daysElapsed(targetMonth, asOf);
-        List<StatsService.Anomaly> anomalies = statsService.computeAnomalies(
-                targetMonth, daysElapsed, daysInMonth, monthTransactions, baselineTransactions);
-
-        List<Budget> budgets = statsService.findBudgets(user, yearMonth);
-        List<StatsService.BudgetStat> budgetStats = statsService.budgetStats(byCategory, budgets);
-
-        MonthlyStatsResponse response = new MonthlyStatsResponse(
-                yearMonth,
-                MonthlyStatsResponse.SummaryResponse.from(summary),
-                byCategory.stream().map(MonthlyStatsResponse.CategoryStatResponse::from).toList(),
-                daily.stream().map(MonthlyStatsResponse.DailyStatResponse::from).toList(),
-                MonthlyStatsResponse.ForecastResponse.from(forecast),
-                anomalies.stream().map(MonthlyStatsResponse.AnomalyResponse::from).toList(),
-                budgetStats.stream().map(MonthlyStatsResponse.BudgetStatResponse::from).toList());
-
-        return ApiResponse.success(response);
+        StatsService.MonthlyStats stats = statsService.getMonthlyStats(user, yearMonth, asOf);
+        return ApiResponse.success(MonthlyStatsResponse.from(stats));
     }
 
     // 최근 3개월(당월 포함) 스캔이라 비용이 커 monthly와 분리한다(CLAUDE.md 5장).

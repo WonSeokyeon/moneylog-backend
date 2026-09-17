@@ -16,6 +16,17 @@ public record MonthlyStatsResponse(
         List<BudgetStatResponse> budgets
 ) {
 
+    public static MonthlyStatsResponse from(StatsService.MonthlyStats stats) {
+        return new MonthlyStatsResponse(
+                stats.yearMonth(),
+                SummaryResponse.from(stats.summary()),
+                stats.byCategory().stream().map(CategoryStatResponse::from).toList(),
+                stats.daily().stream().map(DailyStatResponse::from).toList(),
+                ForecastResponse.from(stats.forecast()),
+                stats.anomalies().stream().map(AnomalyResponse::from).toList(),
+                stats.budgetStats().stream().map(BudgetStatResponse::from).toList());
+    }
+
     public record SummaryResponse(BigDecimal income, BigDecimal expense, BigDecimal net) {
         public static SummaryResponse from(StatsService.Summary summary) {
             return new SummaryResponse(summary.income(), summary.expense(), summary.net());

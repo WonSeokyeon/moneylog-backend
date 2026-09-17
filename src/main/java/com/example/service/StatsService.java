@@ -48,6 +48,11 @@ public class StatsService {
                               BigDecimal usageRatio, boolean exceeded) {
     }
 
+    public record MonthlyStats(String yearMonth, Summary summary, List<CategoryAmount> byCategory,
+                                List<DailyAmount> daily, Forecast forecast, List<Anomaly> anomalies,
+                                List<BudgetStat> budgetStats) {
+    }
+
     private final TransactionRepository transactionRepository;
     private final BudgetRepository budgetRepository;
 
@@ -59,6 +64,31 @@ public class StatsService {
     @Transactional(readOnly = true)
     public List<Budget> findBudgets(User user, String yearMonth) {
         return budgetRepository.findByUserAndYearMonth(user, yearMonth);
+    }
+
+    // 대시보드 한 화면이 필요로 하는 요약·카테고리별·일별·예측·이상치·예산 소진율을 한 번에 조합한다
+    // (CLAUDE.md 5장 "대시보드 집계는 엔드포인트 하나로 묶는다" — 그 조합 로직은 controller가 아니라 여기 있어야 한다).
+    @Transactional(readOnly = true)
+    public MonthlyStats getMonthlyStats(User user, String yearMonth, LocalDate asOf) {
+        YearMonth targetMonth = YearMonth.parse(yearMonth);
+
+        List<Transaction> monthTransactions = findMonthTransactions(user, targetMonth);
+        Summary summary = summarize(monthTransactions);
+        List<CategoryAmount> byCategory = byCategory(monthTransactions, summary.expense());
+        List<DailyAmount> daily = daily(monthTransactions, targetMonth);
+
+        List<Transaction> baselineTransactions = findBaselineTransactions(user, targetMonth);
+        Forecast forecast = computeForecast(targetMonth, asOf, summary.expense(), baselineTransactions);
+
+        int daysInMonth = targetMonth.lengthOfMonth();
+        int daysElapsed = ForecastCalculator.daysElapsed(targetMonth, asOf);
+        List<Anomaly> anomalies = computeAnomalies(
+                targetMonth, daysElapsed, daysInMonth, monthTransactions, baselineTransactions);
+
+        List<Budget> budgets = findBudgets(user, yearMonth);
+        List<BudgetStat> budgetStats = budgetStats(byCategory, budgets);
+
+        return new MonthlyStats(yearMonth, summary, byCategory, daily, forecast, anomalies, budgetStats);
     }
 
     /** recurring 엔드포인트 전용. 임의의 날짜 범위로 거래를 조회한다(카테고리 join fetch 포함). */
