@@ -38,6 +38,20 @@ com.example
 - Service에 `@Transactional`을 붙이고, 조회 전용 메서드는 `readOnly = true`로 명시한다.
 - 집계 쿼리는 Repository 메서드 이름 규칙이 아니라 `@Query`로 명시적으로 작성한다.
 
+## 영수증 인식 (Phase 14, `TXN-13`)
+
+- **외부 Vision API는 SDK 없이 `RestClient`(spring-web 기본 제공)로 직접 호출한다.** Anthropic Messages API(`POST https://api.anthropic.com/v1/messages`, 헤더 `x-api-key`·`anthropic-version: 2023-06-01`)를 호출하는 게 전부라 별도 SDK를 추가하지 않는다(`ReceiptParseService`).
+- **`.env`에 `RECEIPT_VISION_API_KEY`를 채워야 실제 인식이 동작한다.** 비어 있으면 Anthropic이 401을 반환하고, `RECEIPT_PARSE_FAILED`(422)로 응답한다 — 500이 아니라 이 코드로 나가는 것이 정상이다.
+- **업로드 상한(5MB)이 CSV(1MB)보다 커서 전역 `multipart.max-file-size`를 5MB로 올렸다.** 그 여파로 CSV 쪽 1MB 상한이 전역 설정만으로는 더 이상 걸리지 않으므로, `DataService.importCsv`가 파일 크기를 직접 검증한다. 업로드 관련 상한을 손댈 때는 이 둘을 같이 확인한다.
+
+### ⚠️ Spring Boot 4의 자동 구성 `ObjectMapper`는 주입받을 수 없다
+
+Boot 4는 Jackson 3(`tools.jackson`)를 쓰므로, 자동 구성되는 `ObjectMapper` 빈은 `tools.jackson.databind.ObjectMapper` 타입이다. `com.fasterxml.jackson.databind.ObjectMapper`(Jackson 2)를 생성자에서 주입받으면 `UnsatisfiedDependencyException`이 난다. classpath에 Jackson 2가 있는 건 `jjwt-jackson`이 compile scope로 끌고 들어오기 때문일 뿐, 스프링이 그 타입의 빈을 만들어주지는 않는다. **직접 `new ObjectMapper()`로 생성해서 쓴다** — 빈으로 등록할 필요가 없는 로컬 유틸리티다.
+
+### ⚠️ `HttpStatus.UNPROCESSABLE_ENTITY`는 Spring Framework 7에서 deprecated
+
+RFC 9110 명칭에 맞춰 `HttpStatus.UNPROCESSABLE_CONTENT`로 대체됐다(값은 동일하게 422). 컴파일은 경고만 내고 통과하므로 놓치기 쉽다 — 새 `ErrorCode`를 추가할 때 `-Dmaven.compiler.showDeprecation=true`로 한 번 확인한다.
+
 ## 이 저장소에서 만들지 않는 것
 
 - `application.properties` — `.yml`과 공존하면 그쪽 설정이 조용히 무시된다. `.yml` 3종(공통/local/test)만 쓴다.

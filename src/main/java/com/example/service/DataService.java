@@ -37,6 +37,8 @@ public class DataService {
     private static final String CSV_HEADER = "날짜,구분,카테고리,금액,거래처,메모";
     private static final List<String> CSV_HEADER_FIELDS = List.of("날짜", "구분", "카테고리", "금액", "거래처", "메모");
     private static final int MAX_IMPORT_ROWS = 5000;
+    // 전역 멀티파트 상한(application.yml)은 영수증 업로드(5MB) 기준이라, CSV 고유 상한(1MB)은 여기서 직접 검증한다.
+    private static final long MAX_IMPORT_FILE_SIZE = 1024L * 1024L;
     private static final DateTimeFormatter[] DATE_FORMATS = {
             DateTimeFormatter.ofPattern("yyyy-MM-dd"),
             DateTimeFormatter.ofPattern("yyyy.MM.dd"),
@@ -68,6 +70,10 @@ public class DataService {
     // 예외를 던지면 @Transactional이 메서드 전체를 롤백해 이미 성공한 행까지 함께 사라진다.
     @Transactional
     public CsvImportResult importCsv(User user, MultipartFile file) {
+        if (file.getSize() > MAX_IMPORT_FILE_SIZE) {
+            throw new BusinessException(ErrorCode.INVALID_CSV, "파일 용량이 상한(1MB)을 초과했습니다.");
+        }
+
         String content = removeBom(decode(readBytes(file)));
         List<String> rows = CsvParser.splitRows(content).stream().filter(row -> !row.isBlank()).toList();
 

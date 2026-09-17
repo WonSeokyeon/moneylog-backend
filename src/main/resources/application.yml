@@ -8,5 +8,11 @@ spring:
           time_zone: UTC
   servlet:
     multipart:
-      max-file-size: 1MB
-      max-request-size: 2MB
+      # 영수증 이미지(5MB) 기준 상한. CSV(1MB)는 DataService가 별도로 검증한다.
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+receipt:
+  vision:
+    api-key: ${RECEIPT_VISION_API_KEY:}
+    model: claude-sonnet-5

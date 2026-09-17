@@ -50,11 +50,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ErrorCode.INVALID_INPUT.name(), "날짜 형식이 올바르지 않습니다."));
     }
 
-    // 업로드 용량 초과(1MB) 시 스프링 표준 413/500 대신 우리 봉투 포맷의 400 INVALID_CSV로 응답한다(CLAUDE.md 5장).
+    // 업로드 용량 초과 시 스프링 표준 413/500 대신 우리 봉투 포맷의 400으로 응답한다(CLAUDE.md 5장).
+    // 전역 상한(application.yml)은 영수증(5MB) 기준이고, CSV 고유 상한(1MB)은 DataService가 먼저 걸러
+    // INVALID_CSV로 응답하므로 여기까지 오면 대개 영수증 쪽 초과다. 구체적인 상한 값은 넣지 않는다.
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
-        return ResponseEntity.status(ErrorCode.INVALID_CSV.getStatus())
-                .body(ApiResponse.error(ErrorCode.INVALID_CSV.name(), "파일 용량이 상한(1MB)을 초과했습니다."));
+        return ResponseEntity.status(ErrorCode.INVALID_INPUT.getStatus())
+                .body(ApiResponse.error(ErrorCode.INVALID_INPUT.name(), "파일 용량이 업로드 상한을 초과했습니다."));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
