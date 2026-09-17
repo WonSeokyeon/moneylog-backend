@@ -12,6 +12,9 @@ import java.time.format.DateTimeParseException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,12 +80,20 @@ public class DataService {
             throw new BusinessException(ErrorCode.INVALID_CSV, "행 수가 " + MAX_IMPORT_ROWS + "행을 초과했습니다.");
         }
 
+        // 행마다 카테고리를 이름으로 조회하면 5,000행에서 쿼리도 5,000번 나간다 — 사용자 카테고리는
+        // 많아야 수십 개이므로 한 번에 불러와 (이름, 구분) 키의 맵으로 캐싱한다.
+        Map<String, Category> categoriesByNameAndType = categoryRepository
+                .findByUserAndDeletedAtIsNullOrderBySortOrderAscIdAsc(user).stream()
+                .collect(Collectors.toMap(
+                        c -> categoryCacheKey(c.getName(), c.getType()),
+                        Function.identity()));
+
         int imported = 0;
         List<CsvImportError> errors = new ArrayList<>();
         for (int i = 0; i < dataRows.size(); i++) {
             int lineNumber = i + 2; // 1번 줄은 헤더
             try {
-                importRow(user, dataRows.get(i));
+                importRow(user, dataRows.get(i), categoriesByNameAndType);
                 imported++;
             } catch (RowImportException e) {
                 errors.add(new CsvImportError(lineNumber, e.getMessage()));
@@ -94,7 +105,11 @@ public class DataService {
         return new CsvImportResult(imported, errors.size(), errors);
     }
 
-    private void importRow(User user, String row) {
+    private String categoryCacheKey(String name, TransactionType type) {
+        return name + "|" + type;
+    }
+
+    private void importRow(User user, String row, Map<String, Category> categoriesByNameAndType) {
         List<String> fields = CsvParser.parseLine(row);
         if (fields.size() < 6) {
             throw new RowImportException("열 개수가 6개가 아닙니다.");
@@ -110,9 +125,10 @@ public class DataService {
         BigDecimal amount = parseAmount(fields.get(3));
 
         String categoryName = fields.get(2).trim();
-        Category category = categoryRepository
-                .findByUserAndNameAndTypeAndDeletedAtIsNull(user, categoryName, type)
-                .orElseThrow(() -> new RowImportException("카테고리 '" + categoryName + "'를 찾을 수 없습니다."));
+        Category category = categoriesByNameAndType.get(categoryCacheKey(categoryName, type));
+        if (category == null) {
+            throw new RowImportException("카테고리 '" + categoryName + "'를 찾을 수 없습니다.");
+        }
 
         String merchant = fields.get(4).isEmpty() ? null : fields.get(4);
         String memo = fields.get(5).isEmpty() ? null : fields.get(5);
