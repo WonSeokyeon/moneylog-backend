@@ -54,7 +54,9 @@ public class DataController {
                 .body(body.toByteArray());
     }
 
-    @PostMapping("/import")
+    // consumes를 명시해야 SpringDoc이 MultipartFile을 파일 업로드 위젯으로 그린다 —
+    // 없으면 Spring MVC 자체는 정상 동작하지만 Swagger UI가 JSON 텍스트박스로 잘못 그린다.
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<CsvImportResult> importCsv(@AuthenticationPrincipal User user,
                                                     @RequestParam("file") MultipartFile file) {
         return ApiResponse.success(dataService.importCsv(user, file));
