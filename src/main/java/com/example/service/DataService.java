@@ -139,7 +139,7 @@ public class DataService {
         String merchant = fields.get(4).isEmpty() ? null : fields.get(4);
         String memo = fields.get(5).isEmpty() ? null : fields.get(5);
 
-        transactionRepository.save(new Transaction(user, category, type, amount, txnDate, merchant, memo));
+        transactionRepository.save(new Transaction(user, category, type, amount, txnDate, merchant, memo, null, null));
     }
 
     private LocalDate parseDate(String raw) {

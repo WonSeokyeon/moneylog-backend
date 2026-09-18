@@ -100,7 +100,7 @@ class TransactionControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new TransactionUpdateRequest(
                                 TransactionType.EXPENSE, new java.math.BigDecimal("999"),
-                                java.time.LocalDate.of(2026, 1, 1), categoryId, null, null))))
+                                java.time.LocalDate.of(2026, 1, 1), categoryId, null, null, null, null))))
                 .andExpect(status().isNotFound());
 
         mockMvc.perform(delete("/api/v1/transactions/" + txnId).header("Authorization", "Bearer " + otherToken))
@@ -117,7 +117,7 @@ class TransactionControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new TransactionCreateRequest(
                                 TransactionType.INCOME, new java.math.BigDecimal("10000"),
-                                java.time.LocalDate.of(2026, 1, 1), expenseCategoryId, null, null))))
+                                java.time.LocalDate.of(2026, 1, 1), expenseCategoryId, null, null, null, null))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("CATEGORY_TYPE_MISMATCH"));
     }

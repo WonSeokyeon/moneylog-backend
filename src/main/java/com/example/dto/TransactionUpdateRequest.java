@@ -22,6 +22,8 @@ public record TransactionUpdateRequest(
         @NotNull LocalDate txnDate,
         @NotNull Long categoryId,
         @Size(max = 100) String merchant,
-        @Size(max = 500) String memo
+        @Size(max = 500) String memo,
+        Double latitude,
+        Double longitude
 ) {
 }

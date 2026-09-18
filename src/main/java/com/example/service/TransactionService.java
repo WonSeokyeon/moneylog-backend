@@ -52,22 +52,23 @@ public class TransactionService {
 
     @Transactional
     public Transaction create(User user, TransactionType type, BigDecimal amount, LocalDate txnDate,
-                               Long categoryId, String merchant, String memo) {
+                               Long categoryId, String merchant, String memo, Double latitude, Double longitude) {
         Category category = findOwnedCategory(user, categoryId);
         validateTypeMatches(type, category);
 
-        Transaction transaction = new Transaction(user, category, type, amount, txnDate, merchant, memo);
+        Transaction transaction = new Transaction(user, category, type, amount, txnDate, merchant, memo, latitude, longitude);
         return transactionRepository.save(transaction);
     }
 
     @Transactional
     public Transaction update(User user, Long transactionId, TransactionType type, BigDecimal amount,
-                               LocalDate txnDate, Long categoryId, String merchant, String memo) {
+                               LocalDate txnDate, Long categoryId, String merchant, String memo,
+                               Double latitude, Double longitude) {
         Transaction transaction = findOwned(user, transactionId);
         Category category = findOwnedCategory(user, categoryId);
         validateTypeMatches(type, category);
 
-        transaction.update(category, type, amount, txnDate, merchant, memo);
+        transaction.update(category, type, amount, txnDate, merchant, memo, latitude, longitude);
         return transaction;
     }
 

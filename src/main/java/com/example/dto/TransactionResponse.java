@@ -13,6 +13,8 @@ public record TransactionResponse(
         LocalDate txnDate,
         String merchant,
         String memo,
+        Double latitude,
+        Double longitude,
         CategoryResponse category
 ) {
 
@@ -24,6 +26,8 @@ public record TransactionResponse(
                 transaction.getTxnDate(),
                 transaction.getMerchant(),
                 transaction.getMemo(),
+                transaction.getLatitude(),
+                transaction.getLongitude(),
                 CategoryResponse.from(transaction.getCategory()));
     }
 }

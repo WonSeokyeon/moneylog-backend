@@ -31,7 +31,7 @@ class TransactionRepositoryTest extends AbstractRepositoryTest {
 
         Transaction transaction = new Transaction(
                 category.getUser(), category, TransactionType.EXPENSE,
-                new BigDecimal("12500"), LocalDate.of(2026, 9, 14), "스타벅스", null);
+                new BigDecimal("12500"), LocalDate.of(2026, 9, 14), "스타벅스", null, null, null);
 
         Long id = transactionRepository.saveAndFlush(transaction).getId();
         entityManager.clear();
@@ -47,7 +47,7 @@ class TransactionRepositoryTest extends AbstractRepositoryTest {
 
         Transaction zeroAmount = new Transaction(
                 category.getUser(), category, TransactionType.EXPENSE,
-                BigDecimal.ZERO, LocalDate.of(2026, 9, 14), null, null);
+                BigDecimal.ZERO, LocalDate.of(2026, 9, 14), null, null, null, null);
 
         assertThatThrownBy(() -> transactionRepository.saveAndFlush(zeroAmount))
                 .isInstanceOf(DataIntegrityViolationException.class);

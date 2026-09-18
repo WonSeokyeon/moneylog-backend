@@ -84,6 +84,6 @@ class RecurringDetectorTest {
 
     private Transaction transaction(String merchant, String amount, LocalDate txnDate) {
         return new Transaction(user, category, TransactionType.EXPENSE, new BigDecimal(amount),
-                txnDate, merchant, null);
+                txnDate, merchant, null, null, null);
     }
 }

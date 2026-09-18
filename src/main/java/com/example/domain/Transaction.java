@@ -52,13 +52,17 @@ public class Transaction extends BaseEntity {
     @Column(length = 500)
     private String memo;
 
+    private Double latitude;
+
+    private Double longitude;
+
     private LocalDateTime deletedAt;
 
     protected Transaction() {
     }
 
     public Transaction(User user, Category category, TransactionType type, BigDecimal amount,
-                        LocalDate txnDate, String merchant, String memo) {
+                        LocalDate txnDate, String merchant, String memo, Double latitude, Double longitude) {
         this.user = user;
         this.category = category;
         this.type = type;
@@ -66,6 +70,8 @@ public class Transaction extends BaseEntity {
         this.txnDate = txnDate;
         this.merchant = merchant;
         this.memo = memo;
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 
     public Long getId() {
@@ -100,6 +106,14 @@ public class Transaction extends BaseEntity {
         return memo;
     }
 
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
     public LocalDateTime getDeletedAt() {
         return deletedAt;
     }
@@ -109,13 +123,15 @@ public class Transaction extends BaseEntity {
     }
 
     public void update(Category category, TransactionType type, BigDecimal amount,
-                        LocalDate txnDate, String merchant, String memo) {
+                        LocalDate txnDate, String merchant, String memo, Double latitude, Double longitude) {
         this.category = category;
         this.type = type;
         this.amount = amount;
         this.txnDate = txnDate;
         this.merchant = merchant;
         this.memo = memo;
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 
     public void softDelete() {

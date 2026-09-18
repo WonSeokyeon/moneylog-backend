@@ -63,7 +63,8 @@ public class TransactionController {
                                                     @Valid @RequestBody TransactionCreateRequest request) {
         Transaction transaction = transactionService.create(
                 user, request.type(), request.amount(), request.txnDate(),
-                request.categoryId(), request.merchant(), request.memo());
+                request.categoryId(), request.merchant(), request.memo(),
+                request.latitude(), request.longitude());
         return ApiResponse.success(TransactionResponse.from(transaction));
     }
 
@@ -78,7 +79,8 @@ public class TransactionController {
                                                      @Valid @RequestBody TransactionUpdateRequest request) {
         Transaction transaction = transactionService.update(
                 user, id, request.type(), request.amount(), request.txnDate(),
-                request.categoryId(), request.merchant(), request.memo());
+                request.categoryId(), request.merchant(), request.memo(),
+                request.latitude(), request.longitude());
         return ApiResponse.success(TransactionResponse.from(transaction));
     }
 
