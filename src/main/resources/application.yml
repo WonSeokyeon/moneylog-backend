@@ -2,6 +2,7 @@ spring:
   profiles:
     active: local
   jpa:
+    open-in-view: false   # N+1은 join fetch로 잡는 방침이라, 뷰 렌더링까지 커넥션을 물고 있는 기본값을 끈다
     properties:
       hibernate:
         jdbc:
