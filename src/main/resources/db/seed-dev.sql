@@ -61,6 +61,32 @@ CROSS JOIN (
     WHERE user_id = (SELECT id FROM users WHERE email = 'seed@moneylog.local') AND name = '주거/통신'
 ) cat;
 
+-- 고정지출 패턴 3: 유튜브 프리미엄 14,900원, 매월 1일, 6개월 연속
+INSERT INTO transactions (user_id, category_id, type, amount, txn_date, merchant, memo, created_at, updated_at)
+SELECT
+    u.id, cat.id, 'EXPENSE', 14900,
+    (date_trunc('month', CURRENT_DATE) - (m || ' months')::interval)::date,
+    '유튜브 프리미엄', NULL, now(), now()
+FROM generate_series(0, 5) AS m
+CROSS JOIN (SELECT id FROM users WHERE email = 'seed@moneylog.local') u
+CROSS JOIN (
+    SELECT id FROM categories
+    WHERE user_id = (SELECT id FROM users WHERE email = 'seed@moneylog.local') AND name = '문화/여가'
+) cat;
+
+-- 고정지출 패턴 4: 헬스장 79,000원, 매월 8일, 6개월 연속
+INSERT INTO transactions (user_id, category_id, type, amount, txn_date, merchant, memo, created_at, updated_at)
+SELECT
+    u.id, cat.id, 'EXPENSE', 79000,
+    (date_trunc('month', CURRENT_DATE) - (m || ' months')::interval)::date + 7,
+    '헬스장', NULL, now(), now()
+FROM generate_series(0, 5) AS m
+CROSS JOIN (SELECT id FROM users WHERE email = 'seed@moneylog.local') u
+CROSS JOIN (
+    SELECT id FROM categories
+    WHERE user_id = (SELECT id FROM users WHERE email = 'seed@moneylog.local') AND name = '의료/건강'
+) cat;
+
 -- 급여 3,000,000원, 매월 25일, 6개월 연속
 INSERT INTO transactions (user_id, category_id, type, amount, txn_date, merchant, memo, created_at, updated_at)
 SELECT
@@ -75,7 +101,7 @@ CROSS JOIN (
 ) cat;
 
 -- 나머지 지출 382건: 6개월에 걸쳐 EXPENSE 카테고리 7종을 순환하며 생성한다.
--- 18(고정 패턴) + 382 = 400.
+-- 30(고정 패턴 4종 + 급여, 6개월씩) + 382 = 412.
 INSERT INTO transactions (user_id, category_id, type, amount, txn_date, merchant, memo, created_at, updated_at)
 SELECT
     u.id,
