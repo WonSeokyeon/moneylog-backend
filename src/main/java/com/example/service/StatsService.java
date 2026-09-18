@@ -61,8 +61,7 @@ public class StatsService {
         this.budgetRepository = budgetRepository;
     }
 
-    @Transactional(readOnly = true)
-    public List<Budget> findBudgets(User user, String yearMonth) {
+    private List<Budget> findBudgets(User user, String yearMonth) {
         return budgetRepository.findByUserAndYearMonth(user, yearMonth);
     }
 
@@ -102,7 +101,7 @@ public class StatsService {
      * 예산만 잡고 아직 안 쓴 카테고리도, 예산 없이 지출만 있는 카테고리도 모두 보여야 한다.
      * budget이 0(=예산 미설정)이면 usageRatio는 0으로 고정한다(Infinity/NaN 방지).
      */
-    public List<BudgetStat> budgetStats(List<CategoryAmount> byCategory, List<Budget> budgets) {
+    private List<BudgetStat> budgetStats(List<CategoryAmount> byCategory, List<Budget> budgets) {
         Map<Long, BigDecimal> spentByCategory = new LinkedHashMap<>();
         Map<Long, String> nameByCategory = new LinkedHashMap<>();
         for (CategoryAmount ca : byCategory) {
@@ -145,14 +144,12 @@ public class StatsService {
         return result;
     }
 
-    @Transactional(readOnly = true)
-    public List<Transaction> findMonthTransactions(User user, YearMonth yearMonth) {
+    private List<Transaction> findMonthTransactions(User user, YearMonth yearMonth) {
         return transactionRepository.findForMonth(user, yearMonth.atDay(1), yearMonth.atEndOfMonth());
     }
 
     /** 당월을 제외한 직전 3개월(캘린더 기준) 거래를 한 번에 조회한다. */
-    @Transactional(readOnly = true)
-    public List<Transaction> findBaselineTransactions(User user, YearMonth targetMonth) {
+    private List<Transaction> findBaselineTransactions(User user, YearMonth targetMonth) {
         YearMonth earliest = targetMonth.minusMonths(3);
         YearMonth latest = targetMonth.minusMonths(1);
         return transactionRepository.findForMonth(user, earliest.atDay(1), latest.atEndOfMonth());
@@ -162,7 +159,7 @@ public class StatsService {
      * 기준선·런레이트를 계산한다. 직전 3개월 중 거래가 있는 달만 합계·일수에 포함한다("1~2개월치만 있으면
      * 있는 만큼 계산"). 3개월 모두 거래가 없으면 null을 반환해 호출자가 forecast 전체를 비우게 한다.
      */
-    public Forecast computeForecast(YearMonth targetMonth, LocalDate asOf,
+    private Forecast computeForecast(YearMonth targetMonth, LocalDate asOf,
                                      BigDecimal confirmedExpense, List<Transaction> baselineTransactions) {
         List<YearMonth> baselineMonths = baselineMonths(targetMonth);
 
@@ -197,7 +194,7 @@ public class StatsService {
      * 카테고리별 "현재 속도"와 "기준선"을 비교해 이상치를 찾는다. 기준선도 forecast와 같은 원칙(거래가 있는
      * 달만 사용)을 따르되, 카테고리 단위로 다시 계산한다. daysElapsed < 7이면 호출 자체를 건너뛴다(월초 노이즈 방지).
      */
-    public List<Anomaly> computeAnomalies(YearMonth targetMonth, int daysElapsed, int daysInMonth,
+    private List<Anomaly> computeAnomalies(YearMonth targetMonth, int daysElapsed, int daysInMonth,
                                            List<Transaction> currentMonthTransactions,
                                            List<Transaction> baselineTransactions) {
         if (!ForecastCalculator.shouldComputeAnomalies(daysElapsed)) {
@@ -265,14 +262,14 @@ public class StatsService {
                 .toList();
     }
 
-    public Summary summarize(List<Transaction> transactions) {
+    private Summary summarize(List<Transaction> transactions) {
         BigDecimal income = sumByType(transactions, TransactionType.INCOME);
         BigDecimal expense = sumByType(transactions, TransactionType.EXPENSE);
         return new Summary(income, expense, income.subtract(expense));
     }
 
     // 삭제된 카테고리도 과거 지출 집계에서 빠지지 않는다 — 카테고리 자체가 아니라 거래의 category 참조로 그룹핑한다.
-    public List<CategoryAmount> byCategory(List<Transaction> transactions, BigDecimal totalExpense) {
+    private List<CategoryAmount> byCategory(List<Transaction> transactions, BigDecimal totalExpense) {
         Map<Long, BigDecimal> sums = new LinkedHashMap<>();
         Map<Long, Category> categories = new LinkedHashMap<>();
 
@@ -301,7 +298,7 @@ public class StatsService {
 
     // COALESCE로는 해결되지 않는다 — GROUP BY는 거래가 있는 날만 반환하므로 빈 날은 그룹 자체가 없다.
     // 1일부터 말일까지 직접 순회해 없는 날짜를 0.00으로 채운다.
-    public List<DailyAmount> daily(List<Transaction> transactions, YearMonth yearMonth) {
+    private List<DailyAmount> daily(List<Transaction> transactions, YearMonth yearMonth) {
         Map<LocalDate, BigDecimal> expenseByDate = new LinkedHashMap<>();
         Map<LocalDate, BigDecimal> incomeByDate = new LinkedHashMap<>();
 
