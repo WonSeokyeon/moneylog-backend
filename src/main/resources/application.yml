@@ -8,11 +8,7 @@ spring:
           time_zone: UTC
   servlet:
     multipart:
-      # 영수증 이미지(5MB) 기준 상한. CSV(1MB)는 DataService가 별도로 검증한다.
-      max-file-size: 5MB
-      max-request-size: 6MB
-
-receipt:
-  vision:
-    api-key: ${RECEIPT_VISION_API_KEY:}
-    model: claude-sonnet-5
+      # CSV 업로드 상한은 1MB(CLAUDE.md 5장)지만, 여기를 1MB로 맞추면 Spring이 먼저 잘라내
+      # DataService의 400 INVALID_CSV 대신 정형화되지 않은 오류가 나간다. 한 단계 여유를 둔다.
+      max-file-size: 2MB
+      max-request-size: 3MB

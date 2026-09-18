@@ -7,7 +7,6 @@ public enum ErrorCode {
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
     CATEGORY_TYPE_MISMATCH(HttpStatus.BAD_REQUEST, "거래 유형이 카테고리 유형과 일치하지 않습니다."),
     INVALID_CSV(HttpStatus.BAD_REQUEST, "CSV 파일 형식이 올바르지 않습니다."),
-    RECEIPT_PARSE_FAILED(HttpStatus.UNPROCESSABLE_CONTENT, "영수증을 인식하지 못했습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
     TRANSACTION_NOT_FOUND(HttpStatus.NOT_FOUND, "거래 내역을 찾을 수 없습니다."),

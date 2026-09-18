@@ -38,15 +38,11 @@ com.example
 - Service에 `@Transactional`을 붙이고, 조회 전용 메서드는 `readOnly = true`로 명시한다.
 - 집계 쿼리는 Repository 메서드 이름 규칙이 아니라 `@Query`로 명시적으로 작성한다.
 
-## 영수증 인식 (Phase 14, `TXN-13`)
+## 영수증 인식 (`TXN-13`) — 백엔드에 없다
 
-- **외부 Vision API는 SDK 없이 `RestClient`(spring-web 기본 제공)로 직접 호출한다.** Anthropic Messages API(`POST https://api.anthropic.com/v1/messages`, 헤더 `x-api-key`·`anthropic-version: 2023-06-01`)를 호출하는 게 전부라 별도 SDK를 추가하지 않는다(`ReceiptParseService`).
-- **`.env`에 `RECEIPT_VISION_API_KEY`를 채워야 실제 인식이 동작한다.** 비어 있으면 Anthropic이 401을 반환하고, `RECEIPT_PARSE_FAILED`(422)로 응답한다 — 500이 아니라 이 코드로 나가는 것이 정상이다.
-- **업로드 상한(5MB)이 CSV(1MB)보다 커서 전역 `multipart.max-file-size`를 5MB로 올렸다.** 그 여파로 CSV 쪽 1MB 상한이 전역 설정만으로는 더 이상 걸리지 않으므로, `DataService.importCsv`가 파일 크기를 직접 검증한다. 업로드 관련 상한을 손댈 때는 이 둘을 같이 확인한다.
+**영수증 OCR은 프론트엔드가 브라우저에서 Tesseract.js로 처리한다.** 서버 엔드포인트도, 외부 Vision API 호출도, API 키도 없다. 예전에 있던 `ReceiptController`/`ReceiptParseService`(Anthropic Messages API 호출)는 제거했으니 되살리지 않는다.
 
-### ⚠️ Spring Boot 4의 자동 구성 `ObjectMapper`는 주입받을 수 없다
-
-Boot 4는 Jackson 3(`tools.jackson`)를 쓰므로, 자동 구성되는 `ObjectMapper` 빈은 `tools.jackson.databind.ObjectMapper` 타입이다. `com.fasterxml.jackson.databind.ObjectMapper`(Jackson 2)를 생성자에서 주입받으면 `UnsatisfiedDependencyException`이 난다. classpath에 Jackson 2가 있는 건 `jjwt-jackson`이 compile scope로 끌고 들어오기 때문일 뿐, 스프링이 그 타입의 빈을 만들어주지는 않는다. **직접 `new ObjectMapper()`로 생성해서 쓴다** — 빈으로 등록할 필요가 없는 로컬 유틸리티다.
+- 이미지가 서버로 오지 않으므로 **업로드 상한은 CSV만 고려하면 된다.** `multipart.max-file-size`가 2MB인데 CSV 상한은 1MB인 이유는, 전역 설정을 1MB로 맞추면 Spring이 먼저 잘라내 `DataService.importCsv`의 400 `INVALID_CSV` 대신 정형화되지 않은 오류가 나가기 때문이다.
 
 ### ⚠️ `HttpStatus.UNPROCESSABLE_ENTITY`는 Spring Framework 7에서 deprecated
 
